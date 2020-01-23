@@ -1,6 +1,4 @@
-import { getConnection } from 'typeorm';
 import { NestFactory } from '@nestjs/core';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as helmet from 'helmet';
 import * as rateLimit from 'express-rate-limit';
 
@@ -22,26 +20,12 @@ async function bootstrap() {
     }),
   );
 
-  // OpenAPI
-  const options = new DocumentBuilder()
-    .setTitle('API')
-    .setDescription("Application's API")
-    .setVersion('1.0')
-    .addTag('/api')
-    .build();
-  const document = SwaggerModule.createDocument(app, options);
-  SwaggerModule.setup('api', app, document);
-
   await app.listen(3000);
 
   // Hot reload
   if (module.hot) {
-    const connection = getConnection();
-    if (connection.isConnected) {
-      await connection.close();
-    }
     module.hot.accept();
-    module.hot.dispose(async () => {
+    module.hot.dispose(() => {
       app.close();
     });
   }
