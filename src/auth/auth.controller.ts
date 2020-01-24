@@ -9,13 +9,7 @@ export class AuthController {
 
   @UseGuards(AuthGuard('local'))
   @Post('login')
-  async login(@Body() loginUserDTO: LoginUserDTO) {
+  async login(@Body() loginUserDTO: LoginUserDTO): Promise<{ access_token: string }> {
     return this.authService.login(loginUserDTO);
-  }
-
-  @UseGuards(AuthGuard('jwt'))
-  @Get('profile')
-  getProfile(@Request() req) {
-    return 'hello';
   }
 }
