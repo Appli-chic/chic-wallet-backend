@@ -1,21 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import User from '../users/user.entity';
-import { getRepositoryToken } from '@nestjs/typeorm';
 import { JwtStrategy } from './jwt.strategy';
 import { JwtModule } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
-import { EntityRepository } from 'typeorm';
 import { UsersRepository } from '../users/users.repository';
 import LoginUserDTO from './validators/login-user-dto';
+import { HttpException, HttpStatus } from '@nestjs/common';
 
-const userInDb = new User(0, 'test1@gmail.com', 'test1');
-
-@EntityRepository(User)
 export class UsersRepositoryMock extends UsersRepository {
   findByUsername(username: string): Promise<User> {
     if (username === 'test1@gmail.com') {
-      return Promise.resolve<User>(userInDb);
+      return Promise.resolve<User>(new User(0, 'test1@gmail.com', 'test1'));
     }
 
     return null;
@@ -42,7 +38,7 @@ describe('AuthService', () => {
         UsersService,
         AuthService,
         {
-          provide: getRepositoryToken(User),
+          provide: UsersRepository,
           useValue: mockRepository,
         },
       ],
@@ -56,7 +52,7 @@ describe('AuthService', () => {
   });
 
   it('validate user - right login details', async () => {
-    expect(await authService.validateUser('test1@gmail.com', 'test1')).toBe(userInDb);
+    expect(await authService.validateUser('test1@gmail.com', 'test1')).toStrictEqual(new User(0, 'test1@gmail.com'));
   });
 
   it('validate user - wrong email', async () => {
@@ -78,5 +74,35 @@ describe('AuthService', () => {
 
     expect(await authService.login(loginUserDTO)).toBeDefined();
     expect(await authService.login(loginUserDTO)).toHaveProperty('access_token');
+  });
+
+  it('login - wrong email', async () => {
+    const loginUserDTO = new LoginUserDTO();
+    loginUserDTO.username = 'test2@gmail.com';
+    loginUserDTO.password = 'test1';
+
+    await expect(authService.login(loginUserDTO)).rejects.toEqual(
+      new HttpException('Email or password incorrect', HttpStatus.BAD_REQUEST),
+    );
+  });
+
+  it('login - wrong password', async () => {
+    const loginUserDTO = new LoginUserDTO();
+    loginUserDTO.username = 'test1@gmail.com';
+    loginUserDTO.password = 'test2';
+
+    await expect(authService.login(loginUserDTO)).rejects.toEqual(
+      new HttpException('Email or password incorrect', HttpStatus.BAD_REQUEST),
+    );
+  });
+
+  it('login - wrong email and password', async () => {
+    const loginUserDTO = new LoginUserDTO();
+    loginUserDTO.username = 'test2@gmail.com';
+    loginUserDTO.password = 'test2';
+
+    await expect(authService.login(loginUserDTO)).rejects.toEqual(
+      new HttpException('Email or password incorrect', HttpStatus.BAD_REQUEST),
+    );
   });
 });

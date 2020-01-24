@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import LoginUserDTO from './validators/login-user-dto';
@@ -18,10 +18,15 @@ export class AuthService {
     return null;
   }
 
-  async login(user: LoginUserDTO): Promise<{ access_token: string }> {
-    const payload = { email: user.username };
-    return {
-      access_token: this.jwtService.sign(payload),
-    };
+  async login(user: LoginUserDTO): Promise<any> {
+    const userDb = await this.usersService.findOne(user.username);
+    if (userDb && userDb.password === user.password) {
+      const payload = { email: user.username };
+      return {
+        access_token: this.jwtService.sign(payload),
+      };
+    }
+
+    throw new HttpException('Email or password incorrect', HttpStatus.BAD_REQUEST);
   }
 }

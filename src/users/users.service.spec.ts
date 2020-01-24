@@ -1,13 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
 import User from './user.entity';
-import { EntityRepository } from 'typeorm';
 import { UsersRepository } from './users.repository';
-import { getRepositoryToken } from '@nestjs/typeorm';
 
 const userInDb = new User(0, 'test1@gmail.com', 'test1');
 
-@EntityRepository(User)
 export class UsersRepositoryMock extends UsersRepository {
   findByUsername(username: string): Promise<User> {
     if (username === 'test1@gmail.com') {
@@ -28,7 +25,7 @@ describe('UsersService', () => {
       providers: [
         UsersService,
         {
-          provide: getRepositoryToken(User),
+          provide: UsersRepository,
           useValue: mockRepository,
         },
       ],

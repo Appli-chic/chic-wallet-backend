@@ -3,6 +3,7 @@ import * as helmet from 'helmet';
 import * as rateLimit from 'express-rate-limit';
 
 import { AppModule } from './app.module';
+import { ValidationPipe } from '@nestjs/common';
 
 declare const module: any;
 
@@ -12,6 +13,7 @@ async function bootstrap() {
   // Security
   app.use(helmet());
   app.enableCors();
+  app.useGlobalPipes(new ValidationPipe());
 
   app.use(
     rateLimit({
