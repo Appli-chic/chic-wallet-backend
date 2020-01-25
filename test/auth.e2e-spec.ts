@@ -44,6 +44,10 @@ describe('AuthController (e2e)', () => {
         if (!res.body) {
           throw new Error();
         }
+
+        if (!res.body.access_token || !res.body.refresh_token) {
+          throw new Error();
+        }
       });
   });
 

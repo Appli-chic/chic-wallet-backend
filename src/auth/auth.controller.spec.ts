@@ -8,10 +8,13 @@ import { JwtStrategy } from './jwt.strategy';
 import User from '../users/user.entity';
 import { UsersRepository } from '../users/users.repository';
 import { UsersService } from '../users/users.service';
+import { TokensRepository } from './tokens.repository';
+import { DeepPartial, SaveOptions } from 'typeorm';
+import Token from './tokens.entity';
 
 const userInDb = new User(0, 'test1@gmail.com', 'test1');
 
-export class UsersRepositoryMock extends UsersRepository {
+class UsersRepositoryMock extends UsersRepository {
   findByUsername(username: string): Promise<User> {
     if (username === 'test1@gmail.com') {
       return Promise.resolve<User>(userInDb);
@@ -21,7 +24,14 @@ export class UsersRepositoryMock extends UsersRepository {
   }
 }
 
-const mockRepository = new UsersRepositoryMock();
+class TokensRepositoryMock extends TokensRepository {
+  save<T extends DeepPartial<Token>>(entities: T[], options: SaveOptions & { reload: false }): Promise<T[]> {
+    return Promise.resolve(entities);
+  }
+}
+
+const usersRepositoryMock = new UsersRepositoryMock();
+const tokensRepositoryMock = new TokensRepositoryMock();
 
 const resultError = {
   statusCode: 400,
@@ -50,7 +60,11 @@ describe('AuthController', () => {
         JwtStrategy,
         {
           provide: UsersRepository,
-          useValue: mockRepository,
+          useValue: usersRepositoryMock,
+        },
+        {
+          provide: TokensRepository,
+          useValue: tokensRepositoryMock,
         },
       ],
     }).compile();
@@ -62,6 +76,7 @@ describe('AuthController', () => {
   it('Login', async () => {
     const result = {
       access_token: 'accessTokenToRetrieve',
+      refresh_token: 'refreshTokenToRetrieve',
     };
 
     jest.spyOn(authService, 'login').mockImplementation(async () => result);
@@ -72,6 +87,7 @@ describe('AuthController', () => {
 
     expect(await authController.login(loginUserDTO)).toBeDefined();
     expect(await authService.login(loginUserDTO)).toHaveProperty('access_token');
+    expect(await authService.login(loginUserDTO)).toHaveProperty('refresh_token');
     expect(await authService.login(loginUserDTO)).toBe(result);
   });
 

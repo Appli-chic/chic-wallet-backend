@@ -6,6 +6,7 @@ import { UsersModule } from './users/users.module';
 import { LoggerModule } from './logger/logger.module';
 import User from './users/user.entity';
 import { Connection } from 'typeorm';
+import Token from './auth/tokens.entity';
 
 @Module({
   imports: [
@@ -20,7 +21,7 @@ import { Connection } from 'typeorm';
         username: configService.get<string>('DATABASE_USER'),
         password: configService.get<string>('DATABASE_PASSWORD'),
         database: configService.get<string>('DATABASE_NAME'),
-        entities: [User],
+        entities: [User, Token],
         synchronize: configService.get<boolean>('DATABASE_SYNCHRONIZE'),
       }),
       inject: [ConfigService],

@@ -7,12 +7,15 @@ import { LoggerModule } from '../logger/logger.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtStrategy } from './jwt.strategy';
 import { UsersModule } from '../users/users.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { TokensRepository } from './tokens.repository';
 
 @Module({
   imports: [
     UsersModule,
     PassportModule,
     LoggerModule,
+    TypeOrmModule.forFeature([TokensRepository]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({

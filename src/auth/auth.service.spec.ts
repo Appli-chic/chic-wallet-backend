@@ -7,8 +7,11 @@ import { UsersService } from '../users/users.service';
 import { UsersRepository } from '../users/users.repository';
 import LoginUserDTO from './validators/login-user-dto';
 import { HttpException, HttpStatus } from '@nestjs/common';
+import { TokensRepository } from './tokens.repository';
+import Token from './tokens.entity';
+import { DeepPartial, SaveOptions } from 'typeorm';
 
-export class UsersRepositoryMock extends UsersRepository {
+class UsersRepositoryMock extends UsersRepository {
   findByUsername(username: string): Promise<User> {
     if (username === 'test1@gmail.com') {
       return Promise.resolve<User>(new User(0, 'test1@gmail.com', 'test1'));
@@ -18,7 +21,14 @@ export class UsersRepositoryMock extends UsersRepository {
   }
 }
 
-const mockRepository = new UsersRepositoryMock();
+class TokensRepositoryMock extends TokensRepository {
+  save<T extends DeepPartial<Token>>(entities: T[], options: SaveOptions & { reload: false }): Promise<T[]> {
+    return Promise.resolve(entities);
+  }
+}
+
+const usersRepositoryMock = new UsersRepositoryMock();
+const tokensRepositoryMock = new TokensRepositoryMock();
 
 describe('AuthService', () => {
   let authService: AuthService;
@@ -39,7 +49,11 @@ describe('AuthService', () => {
         AuthService,
         {
           provide: UsersRepository,
-          useValue: mockRepository,
+          useValue: usersRepositoryMock,
+        },
+        {
+          provide: TokensRepository,
+          useValue: tokensRepositoryMock,
         },
       ],
     }).compile();
@@ -74,6 +88,7 @@ describe('AuthService', () => {
 
     expect(await authService.login(loginUserDTO)).toBeDefined();
     expect(await authService.login(loginUserDTO)).toHaveProperty('access_token');
+    expect(await authService.login(loginUserDTO)).toHaveProperty('refresh_token');
   });
 
   it('login - wrong email', async () => {
