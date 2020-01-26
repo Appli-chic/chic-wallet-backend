@@ -8,6 +8,7 @@ import { TokensRepository } from './tokens.repository';
 import Token from './tokens.entity';
 import SignUpUserDTO from './validators/sign-up-user-dto';
 import * as bcrypt from 'bcrypt';
+import RefreshModelDTO from './validators/refresh-model-dto';
 
 @Injectable()
 export class AuthService {
@@ -46,7 +47,7 @@ export class AuthService {
     let newUser = new User(null, user.username, hash, [new Token(null, refreshToken)]);
     newUser = await this.usersService.save(newUser);
 
-    const payload = { email: newUser.email };
+    const payload = { email: newUser.email, id: newUser.id };
     return {
       access_token: this.jwtService.sign(payload),
       refresh_token: refreshToken,
@@ -68,7 +69,7 @@ export class AuthService {
         refreshToken = userDb.tokens[0].key;
       }
 
-      const payload = { email: user.username };
+      const payload = { email: user.username, id: userDb.id };
       return {
         access_token: this.jwtService.sign(payload),
         refresh_token: refreshToken,
@@ -76,5 +77,18 @@ export class AuthService {
     }
 
     throw new HttpException('Email or password incorrect', HttpStatus.BAD_REQUEST);
+  }
+
+  async refresh(refreshModelDTO: RefreshModelDTO): Promise<any> {
+    const refreshToken = await this.tokensRepository.getTokenFromKey(refreshModelDTO.refreshToken);
+
+    if (!refreshToken) {
+      throw new HttpException('Wrong token', HttpStatus.BAD_REQUEST);
+    }
+
+    const payload = { email: refreshToken.user.email, id: refreshToken.user.id };
+    return {
+      access_token: this.jwtService.sign(payload),
+    };
   }
 }

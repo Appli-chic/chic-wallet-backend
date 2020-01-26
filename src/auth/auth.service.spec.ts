@@ -11,6 +11,7 @@ import { TokensRepository } from './tokens.repository';
 import Token from './tokens.entity';
 import { DeepPartial, SaveOptions } from 'typeorm';
 import SignUpUserDTO from './validators/sign-up-user-dto';
+import RefreshModelDTO from './validators/refresh-model-dto';
 
 class UsersRepositoryMock extends UsersRepository {
   save<T extends DeepPartial<User>>(entities: T[], options: SaveOptions & { reload: false }): Promise<T[]> {
@@ -31,6 +32,22 @@ class UsersRepositoryMock extends UsersRepository {
 class TokensRepositoryMock extends TokensRepository {
   save<T extends DeepPartial<Token>>(entities: T[], options: SaveOptions & { reload: false }): Promise<T[]> {
     return Promise.resolve(entities);
+  }
+
+  getTokenFromKey(key: string): Promise<Token> {
+    if (key === '110e8400-e29b-11d4-a716-446655440000') {
+      return Promise.resolve(
+        new Token(
+          0,
+          '110e8400-e29b-11d4-a716-446655440000',
+          null,
+          null,
+          new User(0, 'test1@gmail.com', '$2b$10$QSehCA70YZQv0Si.PjUyUuxeFZRKTzE3NNgVziEy9xb55kcH3EBBG'),
+        ),
+      );
+    }
+
+    return null;
   }
 }
 
@@ -145,6 +162,23 @@ describe('AuthService', () => {
 
     await expect(authService.login(loginUserDTO)).rejects.toEqual(
       new HttpException('Email or password incorrect', HttpStatus.BAD_REQUEST),
+    );
+  });
+
+  it('refresh', async () => {
+    const refreshModelDTO = new RefreshModelDTO();
+    refreshModelDTO.refreshToken = '110e8400-e29b-11d4-a716-446655440000';
+
+    expect(await authService.refresh(refreshModelDTO)).toBeDefined();
+    expect(await authService.refresh(refreshModelDTO)).toHaveProperty('access_token');
+  });
+
+  it('refresh - wrong refresh token', async () => {
+    const refreshModelDTO = new RefreshModelDTO();
+    refreshModelDTO.refreshToken = '3fe852e5-1290-4ebc-aae4-b470b6ab7e03';
+
+    await expect(authService.refresh(refreshModelDTO)).rejects.toEqual(
+      new HttpException('Wrong token', HttpStatus.BAD_REQUEST),
     );
   });
 });

@@ -13,6 +13,7 @@ import { DeepPartial, SaveOptions } from 'typeorm';
 import Token from './tokens.entity';
 import SignUpUserDTO from './validators/sign-up-user-dto';
 import { HttpException, HttpStatus } from '@nestjs/common';
+import RefreshModelDTO from './validators/refresh-model-dto';
 
 const userInDb = new User(0, 'test1@gmail.com', 'test1');
 
@@ -155,5 +156,38 @@ describe('AuthController', () => {
 
     expect(await authController.login(loginUserDTO)).toBeDefined();
     expect(await authService.login(loginUserDTO)).toBe(resultError);
+  });
+
+  it('Refresh', async () => {
+    const resultRefresh = new Token(
+      0,
+      '110e8400-e29b-11d4-a716-446655440000',
+      null,
+      null,
+      new User(0, 'test1@gmail.com', '$2b$10$QSehCA70YZQv0Si.PjUyUuxeFZRKTzE3NNgVziEy9xb55kcH3EBBG'),
+    );
+
+    jest.spyOn(authService, 'refresh').mockImplementation(async () => resultRefresh);
+
+    const refreshModelDTO = new RefreshModelDTO();
+    refreshModelDTO.refreshToken = '110e8400-e29b-11d4-a716-446655440000';
+
+    expect(await authController.refresh(refreshModelDTO)).toBeDefined();
+    expect(await authService.refresh(refreshModelDTO)).toBe(resultRefresh);
+  });
+
+  it('Refresh - wrong refresh token', async () => {
+    const resultErrorRefresh = {
+      statusCode: 400,
+      message: 'Wrong token',
+    };
+
+    jest.spyOn(authService, 'refresh').mockImplementation(async () => resultErrorRefresh);
+
+    const refreshModelDTO = new RefreshModelDTO();
+    refreshModelDTO.refreshToken = '110e8400-e29b-11d4-a716-446655440000';
+
+    expect(await authController.refresh(refreshModelDTO)).toBeDefined();
+    expect(await authService.refresh(refreshModelDTO)).toBe(resultErrorRefresh);
   });
 });

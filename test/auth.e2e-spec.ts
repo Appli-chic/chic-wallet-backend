@@ -8,6 +8,8 @@ import * as rateLimit from 'express-rate-limit';
 describe('AuthController (e2e)', () => {
   let app: INestApplication;
 
+  let correctRefreshToken: string;
+
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
@@ -32,11 +34,61 @@ describe('AuthController (e2e)', () => {
       .send({
         username: 'test@test.com',
         password: 'test6000',
+      })
+      .expect(res => {
+        correctRefreshToken = res.body.refresh_token;
       });
   });
 
   afterAll(async () => {
     await app.close();
+  });
+
+  it('/auth/refresh (POST)', () => {
+    return request(app.getHttpServer())
+      .post('/auth/refresh')
+      .send({
+        refreshToken: correctRefreshToken,
+      })
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .expect(res => {
+        if (!res.body) {
+          throw new Error();
+        }
+
+        if (!res.body.access_token) {
+          throw new Error();
+        }
+      });
+  });
+
+  it('/auth/refresh (POST) - wrong refresh token', () => {
+    return request(app.getHttpServer())
+      .post('/auth/refresh')
+      .send({
+        refreshToken: '3fe852e5-1290-4ebc-aae4-b470b6ab7e03',
+      })
+      .expect('Content-Type', /json/)
+      .expect(400)
+      .expect(res => {
+        if (res.body.statusCode !== 400 || res.body.message !== 'Wrong token') {
+          throw new Error();
+        }
+      });
+  });
+
+  it('/auth/refresh (POST) - no refresh token', () => {
+    return request(app.getHttpServer())
+      .post('/auth/refresh')
+      .send()
+      .expect('Content-Type', /json/)
+      .expect(400)
+      .expect(res => {
+        if (res.body.statusCode !== 400 || res.body.message.length !== 1) {
+          throw new Error();
+        }
+      });
   });
 
   it('/auth/signup (POST)', () => {
@@ -47,7 +99,7 @@ describe('AuthController (e2e)', () => {
         password: 'test6000',
       })
       .expect('Content-Type', /json/)
-      .expect(200)
+      .expect(201)
       .expect(res => {
         if (!res.body) {
           throw new Error();
