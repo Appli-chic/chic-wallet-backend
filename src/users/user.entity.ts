@@ -1,12 +1,13 @@
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, OneToMany, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import Token from '../auth/tokens.entity';
 
 @Entity()
 export default class User {
-  constructor(id?: number, email?: string, password?: string) {
+  constructor(id?: number, email?: string, password?: string, tokens?: Token[]) {
     this.id = id;
     this.email = email;
     this.password = password;
+    this.tokens = tokens;
   }
 
   @PrimaryGeneratedColumn()
@@ -26,4 +27,10 @@ export default class User {
     },
   )
   tokens: Token[];
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 }

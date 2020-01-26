@@ -11,6 +11,8 @@ import { UsersService } from '../users/users.service';
 import { TokensRepository } from './tokens.repository';
 import { DeepPartial, SaveOptions } from 'typeorm';
 import Token from './tokens.entity';
+import SignUpUserDTO from './validators/sign-up-user-dto';
+import { HttpException, HttpStatus } from '@nestjs/common';
 
 const userInDb = new User(0, 'test1@gmail.com', 'test1');
 
@@ -89,6 +91,37 @@ describe('AuthController', () => {
     expect(await authService.login(loginUserDTO)).toHaveProperty('access_token');
     expect(await authService.login(loginUserDTO)).toHaveProperty('refresh_token');
     expect(await authService.login(loginUserDTO)).toBe(result);
+  });
+
+  it('Signup', async () => {
+    const result = {
+      access_token: 'accessTokenToRetrieve',
+      refresh_token: 'refreshTokenToRetrieve',
+    };
+
+    jest.spyOn(authService, 'signUp').mockImplementation(async () => result);
+
+    const signUpUserDTO = new SignUpUserDTO();
+    signUpUserDTO.username = 'test2@gmail.com';
+    signUpUserDTO.password = 'test2';
+
+    expect(await authController.signUp(signUpUserDTO)).toBeDefined();
+    expect(await authService.signUp(signUpUserDTO)).toHaveProperty('access_token');
+    expect(await authService.signUp(signUpUserDTO)).toHaveProperty('refresh_token');
+    expect(await authService.signUp(signUpUserDTO)).toBe(result);
+  });
+
+  it('Signup - User already exists', async () => {
+    const result = new HttpException('User already exists', HttpStatus.BAD_REQUEST);
+
+    jest.spyOn(authService, 'signUp').mockImplementation(async () => result);
+
+    const signUpUserDTO = new SignUpUserDTO();
+    signUpUserDTO.username = 'test1@gmail.com';
+    signUpUserDTO.password = 'test6000';
+
+    expect(await authController.signUp(signUpUserDTO)).toBeDefined();
+    expect(await authService.signUp(signUpUserDTO)).toBe(result);
   });
 
   it('Login - wrong email', async () => {

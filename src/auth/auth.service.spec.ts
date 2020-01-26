@@ -10,11 +10,18 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 import { TokensRepository } from './tokens.repository';
 import Token from './tokens.entity';
 import { DeepPartial, SaveOptions } from 'typeorm';
+import SignUpUserDTO from './validators/sign-up-user-dto';
 
 class UsersRepositoryMock extends UsersRepository {
+  save<T extends DeepPartial<User>>(entities: T[], options: SaveOptions & { reload: false }): Promise<T[]> {
+    return Promise.resolve(entities);
+  }
+
   findByUsername(username: string): Promise<User> {
     if (username === 'test1@gmail.com') {
-      return Promise.resolve<User>(new User(0, 'test1@gmail.com', 'test1'));
+      return Promise.resolve<User>(
+        new User(0, 'test1@gmail.com', '$2b$10$QSehCA70YZQv0Si.PjUyUuxeFZRKTzE3NNgVziEy9xb55kcH3EBBG'),
+      );
     }
 
     return null;
@@ -66,7 +73,7 @@ describe('AuthService', () => {
   });
 
   it('validate user - right login details', async () => {
-    expect(await authService.validateUser('test1@gmail.com', 'test1')).toStrictEqual(new User(0, 'test1@gmail.com'));
+    expect(await authService.validateUser('test1@gmail.com', 'test6000')).toStrictEqual(new User(0, 'test1@gmail.com'));
   });
 
   it('validate user - wrong email', async () => {
@@ -81,10 +88,30 @@ describe('AuthService', () => {
     expect(await authService.validateUser('test2@gmail.com', 'test2')).toBeNull();
   });
 
+  it('sign up', async () => {
+    const signUpUserDTO = new SignUpUserDTO();
+    signUpUserDTO.username = 'test5@gmail.com';
+    signUpUserDTO.password = 'test5';
+
+    expect(await authService.signUp(signUpUserDTO)).toBeDefined();
+    expect(await authService.signUp(signUpUserDTO)).toHaveProperty('access_token');
+    expect(await authService.signUp(signUpUserDTO)).toHaveProperty('refresh_token');
+  });
+
+  it('sign up - user already exists', async () => {
+    const signUpUserDTO = new SignUpUserDTO();
+    signUpUserDTO.username = 'test1@gmail.com';
+    signUpUserDTO.password = 'test1';
+
+    await expect(authService.signUp(signUpUserDTO)).rejects.toEqual(
+      new HttpException('User already exists', HttpStatus.BAD_REQUEST),
+    );
+  });
+
   it('login', async () => {
     const loginUserDTO = new LoginUserDTO();
     loginUserDTO.username = 'test1@gmail.com';
-    loginUserDTO.password = 'test1';
+    loginUserDTO.password = 'test6000';
 
     expect(await authService.login(loginUserDTO)).toBeDefined();
     expect(await authService.login(loginUserDTO)).toHaveProperty('access_token');

@@ -11,7 +11,7 @@ import Token from './auth/tokens.entity';
 @Module({
   imports: [
     LoggerModule,
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: `.${process.env.NODE_ENV}.env` }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
@@ -23,6 +23,7 @@ import Token from './auth/tokens.entity';
         database: configService.get<string>('DATABASE_NAME'),
         entities: [User, Token],
         synchronize: configService.get<boolean>('DATABASE_SYNCHRONIZE'),
+        dropSchema: process.env.NODE_ENV === 'test',
       }),
       inject: [ConfigService],
     }),

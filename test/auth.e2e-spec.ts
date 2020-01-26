@@ -25,10 +25,86 @@ describe('AuthController (e2e)', () => {
       }),
     );
     await app.init();
+
+    // Add a user
+    await request(app.getHttpServer())
+      .post('/auth/signup')
+      .send({
+        username: 'test@test.com',
+        password: 'test6000',
+      });
   });
 
   afterAll(async () => {
     await app.close();
+  });
+
+  it('/auth/signup (POST)', () => {
+    return request(app.getHttpServer())
+      .post('/auth/signup')
+      .send({
+        username: 'test6000@test.com',
+        password: 'test6000',
+      })
+      .expect('Content-Type', /json/)
+      .expect(200)
+      .expect(res => {
+        if (!res.body) {
+          throw new Error();
+        }
+
+        if (!res.body.access_token || !res.body.refresh_token) {
+          throw new Error();
+        }
+      });
+  });
+
+  it('/auth/signup (POST) - User already exists', () => {
+    return request(app.getHttpServer())
+      .post('/auth/signup')
+      .send({
+        username: 'test6000@test.com',
+        password: 'test6000',
+      })
+      .expect('Content-Type', /json/)
+      .expect(400)
+      .expect(res => {
+        if (res.body.statusCode !== 400 || res.body.message !== 'User already exists') {
+          throw new Error();
+        }
+      });
+  });
+
+  it('/auth/signup (POST) - Password too short', () => {
+    return request(app.getHttpServer())
+      .post('/auth/signup')
+      .send({
+        username: 'test@test.com',
+        password: 'test',
+      })
+      .expect('Content-Type', /json/)
+      .expect(400)
+      .expect(res => {
+        if (res.body.statusCode !== 400 || res.body.error !== 'Bad Request' || res.body.message.length !== 1) {
+          throw new Error();
+        }
+      });
+  });
+
+  it('/auth/signup (POST) - Email incorrect', () => {
+    return request(app.getHttpServer())
+      .post('/auth/signup')
+      .send({
+        username: 'test6000test.com',
+        password: 'test600',
+      })
+      .expect('Content-Type', /json/)
+      .expect(400)
+      .expect(res => {
+        if (res.body.statusCode !== 400 || res.body.error !== 'Bad Request' || res.body.message.length !== 1) {
+          throw new Error();
+        }
+      });
   });
 
   it('/auth/login (POST)', () => {
@@ -36,7 +112,7 @@ describe('AuthController (e2e)', () => {
       .post('/auth/login')
       .send({
         username: 'test@test.com',
-        password: 'test',
+        password: 'test6000',
       })
       .expect('Content-Type', /json/)
       .expect(200)
